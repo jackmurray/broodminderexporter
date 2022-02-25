@@ -11,6 +11,7 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.WorkerThread
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.Button
@@ -26,9 +27,21 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.c0rporation.broodminderexporter.ui.theme.BroodMinderExporterTheme
-import java.io.File
-import java.io.FileOutputStream
-import java.io.OutputStreamWriter
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import okhttp3.*
+import org.json.JSONObject
+import okio.Okio
+
+import okio.BufferedSink
+
+import okhttp3.RequestBody
+import okhttp3.MultipartBody
+import okhttp3.Response
+import java.io.*
+
 
 class MainActivity : ComponentActivity() {
 
@@ -45,7 +58,9 @@ class MainActivity : ComponentActivity() {
                 val value = it.data?.also {
                     intent -> val uri = intent.data
                     if (uri != null) {
-                        handleDatabaseFile(uri)
+                        CoroutineScope(Dispatchers.Main).launch {
+                            handleDatabaseFile(uri)
+                        }
                     }
                 }
             }
@@ -61,9 +76,7 @@ class MainActivity : ComponentActivity() {
                         // below line is use to add onclick
                         // parameter for our button onclick
                         onClick = {
-                            // when user is clicking the button
-                            // we are displaying a toast message.
-                            Toast.makeText(context, "Welcome to Geeks for Geeks", Toast.LENGTH_LONG).show()
+                            Toast.makeText(context, "Select file to upload", Toast.LENGTH_LONG).show()
                             openFileResult.launch(intent)
                         },
                         // in below line we are using modifier
@@ -90,32 +103,60 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun handleDatabaseFile(uri: Uri) {
-        // annoyingly, there doesn't seem to be a way to read the db directly.
-        // this is because the android sqlite database class expects a File or
-        // a String path to the db file to open, but with the new storage access
-        // framework you can't get one. you CAN get a stream that will give you
-        // the file contents though, so we copy the file to a location on disk
-        // that we _do_ have the path for, and then open that. thanks google
-        // you bunch of retards.
-        val dbPath = getDatabasePath("tempdb")
-        val dbWriter = FileOutputStream(dbPath)
-        contentResolver.openInputStream(uri)?.copyTo(dbWriter)
+    private suspend fun handleDatabaseFile(uri: Uri) {
+        val fileStream = contentResolver.openInputStream(uri)
+        if (fileStream != null) {
+            uploadDatabaseFile(fileStream)
+        }
+    }
 
-        val db = DatabaseParser(this, dbPath)
-        Log.d("DbRecord", db.getBroodMinderData().toString())
+    @WorkerThread
+    private suspend fun uploadDatabaseFile(dbFile: InputStream) {
+        withContext(Dispatchers.IO) {
+            val url = "http://10.0.0.53:5000/upload"
+
+            val dbFileRequestBody: RequestBody = object : RequestBody() {
+                override fun contentType(): MediaType? {
+                    return MediaType.parse("application/octet-stream")
+                }
+
+                override fun writeTo(sink: BufferedSink) {
+                    sink.writeAll(Okio.buffer(Okio.source(dbFile)))
+                }
+            }
+
+            var client = OkHttpClient()
+            val requestBody: RequestBody = MultipartBody.Builder()
+                .setType(MultipartBody.FORM)
+                .addFormDataPart("file", "file", dbFileRequestBody)
+                .build()
+
+            val request = Request.Builder()
+                .url(url)
+                .post(requestBody)
+                .build()
+
+            client.newCall(request).enqueue(object : Callback {
+                override fun onFailure(call: Call?, e: IOException) {
+                    try {
+                        dbFile.close()
+                    } catch (ex: IOException) {
+                        e.addSuppressed(ex)
+                    }
+                    Log.e("dbFileUpload", "failed", e)
+                }
+
+                override fun onResponse(call: Call?, response: Response?) {
+                    dbFile.close()
+                    CoroutineScope(Dispatchers.Main).launch {
+                        Toast.makeText(
+                            this@MainActivity,
+                            "Upload successful!",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                }
+            })
+        }
     }
 }
-
-@Composable
-fun Greeting(name: String) {
-    Text(text = "Hello $name!")
-}
-
-//@Preview(showBackground = true)
-//@Composable
-//fun DefaultPreview() {
-//    BroodMinderExporterTheme {
-//        Greeting("Android")
-//    }
-//}
