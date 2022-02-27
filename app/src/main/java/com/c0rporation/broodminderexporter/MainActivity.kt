@@ -2,6 +2,7 @@ package com.c0rporation.broodminderexporter
 
 import android.app.Activity
 import android.content.Intent
+import android.content.SharedPreferences
 import android.database.Cursor
 import android.net.Uri
 import android.os.Bundle
@@ -13,16 +14,15 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.WorkerThread
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.Button
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Surface
-import androidx.compose.material.Text
+import androidx.compose.material.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -45,8 +45,14 @@ import java.io.*
 
 class MainActivity : ComponentActivity() {
 
+    private var defaultServerAddress = ""
+
+    private var serverAddress = defaultServerAddress
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        defaultServerAddress = getSharedPreferences(prefAppSettings, 0).getString(prefServerAddress, "http://10.0.0.53:5000/upload")!!
 
         val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
             addCategory(Intent.CATEGORY_OPENABLE)
@@ -68,34 +74,59 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             BroodMinderExporterTheme {
-                // A surface container using the 'background' color from the theme
-                Surface(color = MaterialTheme.colors.background) {
+                Column() {
+                    // A surface container using the 'background' color from the theme
+                    Surface(color = MaterialTheme.colors.background) {
+                        val context = LocalContext.current
+                        Button(
+                            // below line is use to add onclick
+                            // parameter for our button onclick
+                            onClick = {
+                                Toast.makeText(context, "Select file to upload", Toast.LENGTH_LONG).show()
+                                openFileResult.launch(intent)
+                            },
+                            // in below line we are using modifier
+                            // which is use to add padding to our button
+                            modifier = Modifier.padding(all = Dp(10F)),
 
-                    val context = LocalContext.current
-                    Button(
-                        // below line is use to add onclick
-                        // parameter for our button onclick
-                        onClick = {
-                            Toast.makeText(context, "Select file to upload", Toast.LENGTH_LONG).show()
-                            openFileResult.launch(intent)
+                            // below line is use to set or
+                            // button as enable or disable.
+                            enabled = true,
+
+                            // below line is use to
+                            // add border to our button.
+                            border = BorderStroke(width = 1.dp, brush = SolidColor(Color.Blue)),
+
+                            // below line is use to add shape for our button.
+                            shape = MaterialTheme.shapes.medium,
+
+                            content = {
+                                Text(text = "Select DB3 File")
+                            }
+                        )
+                    }
+
+                    TextField(
+                        value = serverAddress,
+                        onValueChange = {
+                            serverAddress = it
                         },
-                        // in below line we are using modifier
-                        // which is use to add padding to our button
-                        modifier = Modifier.padding(all = Dp(10F)),
+                        label = {
+                            Text("Server Address")
+                        }
+                    )
 
-                        // below line is use to set or
-                        // button as enable or disable.
-                        enabled = true,
-
-                        // below line is use to
-                        // add border to our button.
-                        border = BorderStroke(width = 1.dp, brush = SolidColor(Color.Blue)),
-
-                        // below line is use to add shape for our button.
-                        shape = MaterialTheme.shapes.medium,
-
+                    Button(
+                        onClick = {
+                            val editor = getSharedPreferences(prefAppSettings, 0).edit()
+                            editor.putString(prefServerAddress, serverAddress)
+                            Log.d("PREF_PUT", "$prefServerAddress = $serverAddress")
+                            // save other prefs here when they exist
+                            editor.commit()
+                            Log.d("PREF_COMMIT", "Saved preferences")
+                        },
                         content = {
-                            Text(text = "Select DB3 File")
+                            Text("Save Settings")
                         }
                     )
                 }
@@ -113,7 +144,7 @@ class MainActivity : ComponentActivity() {
     @WorkerThread
     private suspend fun uploadDatabaseFile(dbFile: InputStream) {
         withContext(Dispatchers.IO) {
-            val url = "http://10.0.0.53:5000/upload"
+            val url = defaultServerAddress
 
             val dbFileRequestBody: RequestBody = object : RequestBody() {
                 override fun contentType(): MediaType? {
@@ -158,5 +189,10 @@ class MainActivity : ComponentActivity() {
                 }
             })
         }
+    }
+
+    companion object {
+        private const val prefAppSettings = "PREF_APP_SETTINGS"
+        private const val prefServerAddress = "PREF_SERVER_ADDRESS"
     }
 }
