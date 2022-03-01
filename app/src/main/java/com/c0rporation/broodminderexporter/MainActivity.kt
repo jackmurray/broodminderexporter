@@ -12,12 +12,13 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
 import androidx.annotation.WorkerThread
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
@@ -26,6 +27,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.ViewModel
 import com.c0rporation.broodminderexporter.ui.theme.BroodMinderExporterTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -47,12 +49,12 @@ class MainActivity : ComponentActivity() {
 
     private var defaultServerAddress = ""
 
-    private var serverAddress = defaultServerAddress
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         defaultServerAddress = getSharedPreferences(prefAppSettings, 0).getString(prefServerAddress, "http://10.0.0.53:5000/upload")!!
+        // populate the VM with the preference data
+        viewModels<MainViewModel>().value.serverAddress = defaultServerAddress
 
         val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
             addCategory(Intent.CATEGORY_OPENABLE)
@@ -73,6 +75,7 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
+            val vm: MainViewModel by remember { viewModels() }
             BroodMinderExporterTheme {
                 Column() {
                     // A surface container using the 'background' color from the theme
@@ -107,9 +110,9 @@ class MainActivity : ComponentActivity() {
                     }
 
                     TextField(
-                        value = serverAddress,
+                        value = vm.serverAddress,
                         onValueChange = {
-                            serverAddress = it
+                            vm.serverAddress = it
                         },
                         label = {
                             Text("Server Address")
@@ -119,8 +122,8 @@ class MainActivity : ComponentActivity() {
                     Button(
                         onClick = {
                             val editor = getSharedPreferences(prefAppSettings, 0).edit()
-                            editor.putString(prefServerAddress, serverAddress)
-                            Log.d("PREF_PUT", "$prefServerAddress = $serverAddress")
+                            editor.putString(prefServerAddress, vm.serverAddress)
+                            Log.d("PREF_PUT", "$prefServerAddress = ${vm.serverAddress}")
                             // save other prefs here when they exist
                             editor.commit()
                             Log.d("PREF_COMMIT", "Saved preferences")
@@ -144,7 +147,7 @@ class MainActivity : ComponentActivity() {
     @WorkerThread
     private suspend fun uploadDatabaseFile(dbFile: InputStream) {
         withContext(Dispatchers.IO) {
-            val url = defaultServerAddress
+            val vm: MainViewModel by viewModels()
 
             val dbFileRequestBody: RequestBody = object : RequestBody() {
                 override fun contentType(): MediaType? {
@@ -163,7 +166,7 @@ class MainActivity : ComponentActivity() {
                 .build()
 
             val request = Request.Builder()
-                .url(url)
+                .url(vm.serverAddress)
                 .post(requestBody)
                 .build()
 
