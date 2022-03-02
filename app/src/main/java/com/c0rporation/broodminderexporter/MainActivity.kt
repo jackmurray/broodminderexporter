@@ -52,7 +52,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        defaultServerAddress = getSharedPreferences(prefAppSettings, 0).getString(prefServerAddress, "http://10.0.0.53:5000/upload")!!
+        defaultServerAddress = getSharedPreferences(prefAppSettings, 0).getString(prefServerAddress, "http://your-server-address:5000/upload")!!
         // populate the VM with the preference data
         viewModels<MainViewModel>().value.serverAddress = defaultServerAddress
 
