@@ -2,11 +2,8 @@ package com.c0rporation.broodminderexporter
 
 import android.app.Activity
 import android.content.Intent
-import android.content.SharedPreferences
-import android.database.Cursor
 import android.net.Uri
 import android.os.Bundle
-import android.provider.DocumentsContract
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -23,18 +20,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.ViewModel
 import com.c0rporation.broodminderexporter.ui.theme.BroodMinderExporterTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.*
-import org.json.JSONObject
 import okio.Okio
 
 import okio.BufferedSink
