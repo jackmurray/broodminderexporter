@@ -45,6 +45,17 @@
                 <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\..*\\.db3" />
                 <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\..*\\..*\\.db3" />
             </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data
+                    android:scheme="content"
+                    android:host="*"
+                    android:mimeType="application/octet-stream" />
+            </intent-filter>
 
         </activity>
     </application>

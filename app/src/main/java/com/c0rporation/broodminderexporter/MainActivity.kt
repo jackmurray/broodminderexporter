@@ -49,10 +49,16 @@ class MainActivity : ComponentActivity() {
         // populate the VM with the preference data
         viewModels<MainViewModel>().value.serverAddress = defaultServerAddress
 
-        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
-            addCategory(Intent.CATEGORY_OPENABLE)
-        }.setType("*/*")
-
+        when (intent?.action) {
+            Intent.ACTION_VIEW -> {
+                if (intent.data != null) {
+                    val uri = intent.data!! // we just checked above that it's not null...
+                    CoroutineScope(Dispatchers.Main).launch {
+                        handleDatabaseFile(uri)
+                    }
+                }
+            }
+        }
         val openFileResult = registerForActivityResult(
             ActivityResultContracts.StartActivityForResult()) {
             if(it.resultCode == Activity.RESULT_OK){
@@ -79,7 +85,10 @@ class MainActivity : ComponentActivity() {
                             // parameter for our button onclick
                             onClick = {
                                 Toast.makeText(context, "Select file to upload", Toast.LENGTH_LONG).show()
-                                openFileResult.launch(intent)
+                                val openFileintent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+                                    addCategory(Intent.CATEGORY_OPENABLE)
+                                }.setType("*/*")
+                                openFileResult.launch(openFileintent)
                             },
                             // in below line we are using modifier
                             // which is use to add padding to our button
