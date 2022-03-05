@@ -22,6 +22,30 @@
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data
+                    android:scheme="content"
+                    android:host="*"
+                    android:mimeType="*/*" />
+                <!-- Google you absolute bunch of retards. How the fuck did you ever think
+                that this was an acceptable way to handle file names. There is no universe
+                in which it is sensible to make .* a non-greedy match, ESPECIALLY WHEN YOU
+                CAN'T OVERRIDE IT AND MAKE IT GREEDY IF YOU WANT IT TO BE. Seriously, fuck
+                whatever developer implemented the pathPattern matching code. -->
+                <data android:pathPattern=".*\\.db3" />
+                <data android:pathPattern=".*\\..*\\.db3" />
+                <data android:pathPattern=".*\\..*\\..*\\.db3" />
+                <data android:pathPattern=".*\\..*\\..*\\..*\\.db3" />
+                <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\.db3" />
+                <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\..*\\.db3" />
+                <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\..*\\..*\\.db3" />
+            </intent-filter>
+
         </activity>
     </application>
     <uses-permission android:name="android.permission.INTERNET" />
